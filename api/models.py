@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
@@ -8,6 +9,14 @@ class Estudiante(models.Model):
         ACTIVO = "ACTIVO", "Activo"
         INACTIVO = "INACTIVO", "Inactivo"
 
+    # Cuenta de acceso del estudiante (login). Null = ficha creada por el administrador sin cuenta aún.
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="estudiante",
+    )
     cedula = models.CharField(max_length=20, unique=True)
     nombres = models.CharField(max_length=100)
     apellidos = models.CharField(max_length=100)

@@ -10,7 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
+from datetime import timedelta
 from pathlib import Path
+
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +24,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-$)bw5)1almh&vg-n%z#4y*4387q402dlmjpjg+-0w3fu3^jjks'
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-insecure-key-change-me-0123456789-abcdef")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "0") == "1"
 
-ALLOWED_HOSTS = ["*"] 
+ALLOWED_HOSTS = os.environ.get(
+    "ALLOWED_HOSTS", "localhost,127.0.0.1,10.0.2.2,.onrender.com"
+).split(",")
 
 # Application definition
 
@@ -36,7 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    "rest_framework", "corsheaders", "api",
+    "rest_framework", "rest_framework_simplejwt", "corsheaders", "api",
 ]
 
 MIDDLEWARE = [
@@ -49,7 +55,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 MIDDLEWARE.insert(0, "corsheaders.middleware.CorsMiddleware")   # debe ir primero
-CORS_ALLOW_ALL_ORIGINS = True                                   # solo en desarrollo
+CORS_ALLOW_ALL_ORIGINS = DEBUG   # la app móvil no necesita CORS; solo útil en web/desarrollo
 
 ROOT_URLCONF = 'config.urls'
 
@@ -75,14 +81,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'post_prueba',
-        'USER': 'post_prueba',
-        'PASSWORD': '0oGRgpfDRzRxHU6zjDeW8HY663FiWX9G',
-        'HOST': 'dpg-datd51hsrm7s7388b4f0-a.oregon-postgres.render.com',
-        'PORT': '5432',
-    }
+    "default": dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",  # local; en Render define DATABASE_URL
+        conn_max_age=600,
+    )
 }
 
 
@@ -108,9 +110,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-ec'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Guayaquil'
 
 USE_I18N = True
 
@@ -123,15 +125,32 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
+# Email (recuperación de usuario/contraseña). Local: se imprime en consola.
+# En producción define EMAIL_HOST, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, etc.
+EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "1") == "1"
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Gestión Académica <no-reply@example.com>")
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
 REST_FRAMEWORK = {
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_PAGINATION_CLASS": "api.pagination.Paginacion",
     "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_RATES": {"auth": "20/min"},  # login, registro y recuperación
 }
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+}
+
+# Días de anticipación para avisar de un rubro por vencer (alerta y notificaciones locales)
+DIAS_ALERTA_RUBRO = 5

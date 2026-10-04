@@ -1,23 +1,168 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.db.models import Avg, Count, Sum
 from django.utils import timezone
-from rest_framework import filters, viewsets
+from rest_framework import filters, generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import Estudiante, EstudianteModulo, Modulo, Rubro
 from .serializers import (
     EstudianteModuloSerializer,
     EstudianteSerializer,
+    LoginSerializer,
     ModuloSerializer,
+    PerfilSerializer,
+    RegisterSerializer,
     RubroSerializer,
+    datos_usuario,
 )
 
 
+# ---------- utilidades ----------
+
+
+def _resumen(qs):
+    r = qs.aggregate(cantidad=Count("id"), total=Sum("valor"))
+    return {"cantidad": r["cantidad"], "total": r["total"] or 0}
+
+
+def _dias(request, default):
+    """Lee ?dias= de forma segura (si no es un número válido usa el valor por defecto)."""
+    try:
+        return max(0, min(int(request.query_params.get("dias", default)), 365))
+    except (TypeError, ValueError):
+        return default
+
+
+class TieneEstudiante(permissions.IsAuthenticated):
+    """Usuario autenticado que tiene una ficha de estudiante asociada."""
+
+    message = "Tu usuario no tiene un estudiante asociado."
+
+    def has_permission(self, request, view):
+        return super().has_permission(request, view) and hasattr(request.user, "estudiante")
+
+
+# ---------- autenticación ----------
+
+
+class RegisterView(generics.GenericAPIView):
+    """Crea el usuario y su ficha de estudiante, y devuelve los tokens (queda con sesión iniciada)."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    serializer_class = RegisterSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        ser = self.get_serializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        user = ser.save()
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                "usuario": datos_usuario(user),
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class LoginView(TokenObtainPairView):
+    serializer_class = LoginSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+
+# ---------- "mis datos" (el estudiante autenticado) ----------
+
+
+class MeView(APIView):
+    permission_classes = [TieneEstudiante]
+
+    def get(self, request):
+        return Response(EstudianteSerializer(request.user.estudiante).data)
+
+    def patch(self, request):
+        est = request.user.estudiante
+        ser = PerfilSerializer(est, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(EstudianteSerializer(est).data)
+
+
+class MisInscripcionesView(generics.ListAPIView):
+    permission_classes = [TieneEstudiante]
+    serializer_class = EstudianteModuloSerializer
+
+    def get_queryset(self):
+        qs = EstudianteModulo.objects.filter(estudiante=self.request.user.estudiante).select_related(
+            "estudiante", "modulo"
+        )
+        estado = self.request.query_params.get("estado")
+        return (qs.filter(estado=estado) if estado else qs).order_by("modulo__nombre")
+
+
+class MisRubrosView(generics.ListAPIView):
+    """Rubros del estudiante. Filtro opcional: ?estado_pago=PENDIENTE|PAGADO|VENCIDO."""
+
+    permission_classes = [TieneEstudiante]
+    serializer_class = RubroSerializer
+
+    def get_queryset(self):
+        qs = Rubro.objects.filter(estudiante=self.request.user.estudiante).select_related("estudiante")
+        estado = self.request.query_params.get("estado_pago")
+        return qs.filter(estado_pago=estado) if estado else qs
+
+
+class MiDashboardView(APIView):
+    """Resumen personal: progreso, módulos y estado de los pagos (con alerta de pendientes)."""
+
+    permission_classes = [TieneEstudiante]
+
+    def get(self, request):
+        est = request.user.estudiante
+        hoy = timezone.localdate()
+        dias = settings.DIAS_ALERTA_RUBRO
+        no_pagados = est.rubros.exclude(estado_pago=Rubro.EstadoPago.PAGADO)
+        insc = est.inscripciones
+        return Response(
+            {
+                "estudiante": est.nombre_completo,
+                "modulos": insc.count(),
+                "progreso_promedio": round(insc.aggregate(a=Avg("progreso"))["a"] or 0, 1),
+                "inscripciones_por_estado": {
+                    r["estado"]: r["n"] for r in insc.values("estado").annotate(n=Count("id"))
+                },
+                "hay_pagos_pendientes": no_pagados.exists(),
+                "dias_alerta": dias,
+                # vencidos: fecha pasada | por_vencer: vencen en los próximos `dias_alerta` días
+                # pendientes: no pagados que aún no vencen (incluye a los por_vencer)
+                "rubros_vencidos": _resumen(no_pagados.filter(fecha_vencimiento__lt=hoy)),
+                "rubros_por_vencer": _resumen(
+                    no_pagados.filter(fecha_vencimiento__range=(hoy, hoy + timedelta(days=dias)))
+                ),
+                "rubros_pendientes": _resumen(no_pagados.filter(fecha_vencimiento__gte=hoy)),
+            }
+        )
+
+
+# ---------- administración (solo staff) ----------
+
+
 class EstudianteViewSet(viewsets.ModelViewSet):
-    queryset = Estudiante.objects.annotate(progreso_promedio=Avg("inscripciones__progreso"))
+    permission_classes = [permissions.IsAdminUser]
+    queryset = Estudiante.objects.annotate(progreso_promedio=Avg("inscripciones__progreso")).order_by(
+        "apellidos", "nombres"
+    )
     serializer_class = EstudianteSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["cedula", "nombres", "apellidos", "correo"]
@@ -44,10 +189,13 @@ class EstudianteViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get"])
     def rubros(self, request, pk=None):
         est = self.get_object()
-        return Response(RubroSerializer(est.rubros.select_related("estudiante"), many=True).data)
+        qs = est.rubros.select_related("estudiante")
+        page = self.paginate_queryset(qs)
+        return self.get_paginated_response(RubroSerializer(page, many=True).data)
 
 
 class ModuloViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAdminUser]
     queryset = Modulo.objects.all()
     serializer_class = ModuloSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -56,6 +204,7 @@ class ModuloViewSet(viewsets.ModelViewSet):
 
 
 class EstudianteModuloViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAdminUser]
     queryset = EstudianteModulo.objects.select_related("estudiante", "modulo")
     serializer_class = EstudianteModuloSerializer
     filter_backends = [filters.OrderingFilter]
@@ -71,6 +220,7 @@ class EstudianteModuloViewSet(viewsets.ModelViewSet):
 
 
 class RubroViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAdminUser]
     queryset = Rubro.objects.select_related("estudiante")
     serializer_class = RubroSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -88,8 +238,8 @@ class RubroViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="por-vencer")
     def por_vencer(self, request):
-        """Rubros pendientes que vencen en los próximos N días (?dias=7)."""
-        dias = int(request.query_params.get("dias", 7))
+        """Rubros pendientes que vencen en los próximos N días (?dias=5)."""
+        dias = _dias(request, settings.DIAS_ALERTA_RUBRO)
         hoy = timezone.localdate()
         qs = self.get_queryset().filter(
             estado_pago=Rubro.EstadoPago.PENDIENTE,
@@ -107,18 +257,14 @@ class RubroViewSet(viewsets.ModelViewSet):
 
 
 class DashboardView(APIView):
-    """Resumen general para el dashboard de la app."""
+    """Resumen global (solo administradores)."""
+
+    permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
         hoy = timezone.localdate()
+        dias = settings.DIAS_ALERTA_RUBRO
         no_pagados = Rubro.objects.exclude(estado_pago=Rubro.EstadoPago.PAGADO)
-        vencidos = no_pagados.filter(fecha_vencimiento__lt=hoy)
-        por_vencer = no_pagados.filter(fecha_vencimiento__range=(hoy, hoy + timedelta(days=7)))
-        pendientes = no_pagados.filter(fecha_vencimiento__gte=hoy)
-
-        def resumen(qs):
-            return qs.aggregate(cantidad=Count("id"), total=Sum("valor"))
-
         return Response(
             {
                 "estudiantes_activos": Estudiante.objects.filter(estado=Estudiante.Estado.ACTIVO).count(),
@@ -130,8 +276,10 @@ class DashboardView(APIView):
                     r["estado"]: r["n"]
                     for r in EstudianteModulo.objects.values("estado").annotate(n=Count("id"))
                 },
-                "rubros_pendientes": resumen(pendientes),
-                "rubros_por_vencer_7_dias": resumen(por_vencer),
-                "rubros_vencidos": resumen(vencidos),
+                "rubros_pendientes": _resumen(no_pagados.filter(fecha_vencimiento__gte=hoy)),
+                "rubros_por_vencer": _resumen(
+                    no_pagados.filter(fecha_vencimiento__range=(hoy, hoy + timedelta(days=dias)))
+                ),
+                "rubros_vencidos": _resumen(no_pagados.filter(fecha_vencimiento__lt=hoy)),
             }
         )
