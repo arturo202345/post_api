@@ -1,0 +1,23 @@
+{% extends "web/base.html" %}
+{% load web_extras %}
+{% block titulo %}Progreso · Gestión Académica{% endblock %}
+{% block contenido %}
+<h1>Mi progreso</h1>
+<div class="tarjeta">
+  <div class="fila"><span>Progreso general</span><b>{{ general|pct }}%</b></div>
+  <div class="barra"><div style="width:{{ general|pct }}%"></div></div>
+</div>
+
+<h2>Módulos</h2>
+{% for m in inscripciones %}
+<div class="tarjeta">
+  <div class="fila"><span>{{ m.modulo.nombre }}</span><span class="pill e-{{ m.estado }}">{{ m.estado|etiqueta }}</span></div>
+  <div class="fila" style="margin-top:10px">
+    <div class="barra" style="flex:1;margin:0"><div style="width:{{ m.progreso|pct }}%"></div></div>
+    <span>{{ m.progreso|pct }}%</span>
+  </div>
+</div>
+{% empty %}
+<p class="suave">Aún no estás matriculado en ningún módulo.</p>
+{% endfor %}
+{% endblock %}

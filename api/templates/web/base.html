@@ -1,0 +1,96 @@
+{% load web_extras %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Gestión Académica{% endblock %}</title>
+  <style>
+    :root { --color:#2F5D62; --fondo:#F7F8F8; --borde:#e5e7e7; --texto:#1c1f1f; --suave:#6b7373;
+            --verde:#16a34a; --rojo:#dc2626; --naranja:#c2620a; --azul:#2563eb; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--fondo); color:var(--texto);
+           font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.4; }
+    a { color:var(--color); }
+    .cabecera { background:#fff; border-bottom:1px solid var(--borde); }
+    .cabecera .dentro { max-width:720px; margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:12px; }
+    .marca { font-weight:600; flex:1; display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--texto); }
+    .logo { width:32px; height:32px; border-radius:9px; background:var(--color); display:flex; align-items:center; justify-content:center; }
+    .logo svg { width:18px; height:18px; fill:#fff; }
+    .menu { display:flex; gap:4px; }
+    .menu a { text-decoration:none; color:var(--suave); padding:8px 14px; border-radius:20px; font-size:14px; }
+    .menu a.activa { background:rgba(47,93,98,.12); color:var(--color); font-weight:600; }
+    .salir button { background:none; border:0; color:var(--suave); font-size:14px; cursor:pointer; padding:8px; }
+    main { max-width:720px; margin:0 auto; padding:20px 16px 90px; }
+    h1 { font-size:24px; margin:0 0 16px; font-weight:600; }
+    h2 { font-size:16px; margin:24px 0 8px; font-weight:600; }
+    .tarjeta { background:#fff; border:1px solid var(--borde); border-radius:14px; padding:16px; margin-bottom:10px; }
+    .fila { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .rejilla { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+    .rejilla .tarjeta { margin:0; }
+    .numero { font-size:28px; font-weight:500; }
+    .suave { color:var(--suave); font-size:13px; }
+    .barra { height:8px; border-radius:8px; background:#e5e7eb; overflow:hidden; margin-top:8px; }
+    .barra > div { height:100%; background:var(--color); border-radius:8px; }
+    .pill { display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; background:#eee; color:#555; }
+    .e-PAGADO,.e-FINALIZADO { background:rgba(22,163,74,.12); color:var(--verde); }
+    .e-VENCIDO { background:rgba(220,38,38,.12); color:var(--rojo); }
+    .e-PENDIENTE { background:rgba(194,98,10,.12); color:var(--naranja); }
+    .e-EN_CURSO { background:rgba(37,99,235,.12); color:var(--azul); }
+    .pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+    .alerta { display:block; text-decoration:none; color:inherit; border-radius:14px; padding:14px; margin-bottom:12px; border:1px solid; }
+    .alerta b { display:block; }
+    .alerta.rojo { background:rgba(220,38,38,.07); border-color:rgba(220,38,38,.35); } .alerta.rojo b { color:var(--rojo); }
+    .alerta.naranja { background:rgba(194,98,10,.08); border-color:rgba(194,98,10,.35); } .alerta.naranja b { color:var(--naranja); }
+    .alerta.gris { background:rgba(100,116,139,.08); border-color:rgba(100,116,139,.35); } .alerta.gris b { color:#475569; }
+    .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+    .chips a { text-decoration:none; padding:6px 14px; border-radius:20px; border:1px solid var(--borde); background:#fff; color:var(--texto); font-size:13px; }
+    .chips a.activo { background:rgba(47,93,98,.12); border-color:var(--color); color:var(--color); font-weight:600; }
+    .valor { font-weight:700; text-align:right; }
+    /* formularios */
+    .auth { max-width:420px; margin:0 auto; padding:32px 16px; }
+    .auth .centro { text-align:center; margin-bottom:24px; }
+    .auth .logo { width:52px; height:52px; border-radius:14px; margin:0 auto 12px; } .auth .logo svg { width:28px; height:28px; }
+    label { display:block; font-size:13px; color:var(--suave); margin:12px 0 4px; }
+    input { width:100%; padding:11px 12px; border:1px solid #d3d7d7; border-radius:12px; font-size:15px; background:#fff; }
+    input:focus { outline:2px solid rgba(47,93,98,.35); border-color:var(--color); }
+    .boton { width:100%; margin-top:18px; padding:12px; border:0; border-radius:24px; background:var(--color); color:#fff; font-size:15px; cursor:pointer; }
+    .boton.claro { background:#fff; color:var(--texto); border:1px solid var(--borde); }
+    .error { color:var(--rojo); font-size:13px; margin:4px 0 0; }
+    .error.caja { margin:12px 0 0; }
+    .mensaje { background:rgba(22,163,74,.1); border:1px solid rgba(22,163,74,.35); color:#166534; border-radius:12px; padding:10px 14px; margin-bottom:14px; font-size:14px; }
+    .enlace { text-align:center; margin-top:16px; font-size:14px; }
+    .dato { padding:12px 16px; border-bottom:1px solid var(--borde); } .dato:last-child { border:0; }
+    .tarjeta.lista { padding:0; }
+    /* menú inferior en el celular, como la app */
+    @media (max-width:639px) {
+      .menu { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--borde); padding:6px 4px; gap:0; z-index:5; }
+      .menu a { flex:1; text-align:center; border-radius:12px; padding:10px 2px; font-size:12px; }
+    }
+  </style>
+</head>
+<body>
+  {% if pagina %}
+  <header class="cabecera">
+    <div class="dentro">
+      <a class="marca" href="{% url 'web:resumen' %}">
+        <span class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg></span>
+        Gestión Académica
+      </a>
+      <nav class="menu" aria-label="Principal">
+        <a href="{% url 'web:resumen' %}" class="{% if pagina == 'resumen' %}activa{% endif %}">Resumen</a>
+        <a href="{% url 'web:progreso' %}" class="{% if pagina == 'progreso' %}activa{% endif %}">Progreso</a>
+        <a href="{% url 'web:rubros' %}" class="{% if pagina == 'rubros' %}activa{% endif %}">Rubros</a>
+        <a href="{% url 'web:perfil' %}" class="{% if pagina == 'perfil' %}activa{% endif %}">Perfil</a>
+      </nav>
+      <form class="salir" method="post" action="{% url 'web:salir' %}">{% csrf_token %}<button type="submit">Salir</button></form>
+    </div>
+  </header>
+  {% endif %}
+  {% block cuerpo %}
+  <main>
+    {% for m in messages %}<div class="mensaje">{{ m }}</div>{% endfor %}
+    {% block contenido %}{% endblock %}
+  </main>
+  {% endblock %}
+</body>
+</html>

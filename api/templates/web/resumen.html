@@ -1,0 +1,35 @@
+{% extends "web/base.html" %}
+{% load web_extras %}
+{% block titulo %}Resumen · Gestión Académica{% endblock %}
+{% block contenido %}
+<h1>Hola, {{ primer_nombre }}</h1>
+
+{% if alerta %}
+<a class="alerta {{ alerta.clase }}" href="{% url 'web:rubros' %}">
+  <b>{{ alerta.titulo }}</b>
+  <span class="suave" style="color:#333">{{ alerta.detalle }}</span>
+</a>
+{% endif %}
+
+<div class="rejilla">
+  <div class="tarjeta"><div class="numero">{{ d.modulos }}</div><div class="suave">Módulos</div></div>
+  <div class="tarjeta"><div class="numero">{{ finalizados }}</div><div class="suave">Finalizados</div></div>
+</div>
+
+<div class="tarjeta">
+  <div class="fila"><span>Progreso promedio</span><b>{{ d.progreso_promedio|pct }}%</b></div>
+  <div class="barra"><div style="width:{{ d.progreso_promedio|pct }}%"></div></div>
+  {% if d.inscripciones_por_estado %}
+  <div class="pills">
+    {% for estado, n in d.inscripciones_por_estado.items %}
+      <span class="pill e-{{ estado }}">{{ estado|etiqueta }}: {{ n }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<h2>Pagos</h2>
+<div class="tarjeta fila"><div><div>Vencidos</div><div class="suave">{{ d.rubros_vencidos.cantidad }} rubro(s)</div></div><b style="color:var(--rojo)">{{ d.rubros_vencidos.total|dinero }}</b></div>
+<div class="tarjeta fila"><div><div>Vencen en {{ d.dias_alerta }} días</div><div class="suave">{{ d.rubros_por_vencer.cantidad }} rubro(s)</div></div><b style="color:var(--naranja)">{{ d.rubros_por_vencer.total|dinero }}</b></div>
+<div class="tarjeta fila"><div><div>Pendientes</div><div class="suave">{{ d.rubros_pendientes.cantidad }} rubro(s)</div></div><b style="color:#475569">{{ d.rubros_pendientes.total|dinero }}</b></div>
+{% endblock %}

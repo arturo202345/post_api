@@ -1,0 +1,23 @@
+{% extends "web/base.html" %}
+{% load web_extras %}
+{% block titulo %}Rubros · Gestión Académica{% endblock %}
+{% block contenido %}
+<h1>Mis rubros</h1>
+<div class="chips">
+  {% for f in filtros %}<a href="?estado={{ f }}" class="{% if f == filtro %}activo{% endif %}">{{ f }}</a>{% endfor %}
+</div>
+{% for r in rubros %}
+<div class="tarjeta fila">
+  <div>
+    <div>{{ r.concepto }}</div>
+    <div class="suave">Vence {{ r.fecha_vencimiento|date:"d/m/Y" }}{% if r.cuando %} · {{ r.cuando }}{% endif %}</div>
+  </div>
+  <div style="text-align:right">
+    <div class="valor">{{ r.valor|dinero }}</div>
+    <span class="pill e-{{ r.estado_ef }}">{{ r.estado_ef|etiqueta }}</span>
+  </div>
+</div>
+{% empty %}
+<p class="suave">Sin rubros.</p>
+{% endfor %}
+{% endblock %}

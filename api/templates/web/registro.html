@@ -1,0 +1,22 @@
+{% extends "web/base.html" %}
+{% block titulo %}Crear cuenta · Gestión Académica{% endblock %}
+{% block cuerpo %}
+<div class="auth">
+  <div class="centro">
+    <div class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg></div>
+    <h1 style="margin:0">Crea tu cuenta</h1>
+    <p class="suave">Con ella también podrás entrar a la app</p>
+  </div>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for c in campos %}
+      <label for="{{ c.name }}">{{ c.label }}</label>
+      <input id="{{ c.name }}" name="{{ c.name }}" type="{{ c.type }}" value="{{ c.value }}" autocomplete="{{ c.auto }}"{% if c.type != 'password' %} autocapitalize="none"{% endif %}>
+      {% for e in c.errores %}<p class="error">{{ e }}</p>{% endfor %}
+    {% endfor %}
+    {% for e in otros_errores %}<p class="error caja">{{ e }}</p>{% endfor %}
+    <button class="boton" type="submit">Crear cuenta</button>
+  </form>
+  <p class="enlace"><a href="{% url 'web:login' %}">¿Ya tienes cuenta? Inicia sesión</a></p>
+</div>
+{% endblock %}

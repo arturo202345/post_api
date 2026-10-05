@@ -12,6 +12,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import Estudiante, EstudianteModulo, Modulo, Rubro
+from .servicios import dashboard_estudiante, resumen as _resumen
 from .serializers import (
     EstudianteModuloSerializer,
     EstudianteSerializer,
@@ -25,11 +26,6 @@ from .serializers import (
 
 
 # ---------- utilidades ----------
-
-
-def _resumen(qs):
-    r = qs.aggregate(cantidad=Count("id"), total=Sum("valor"))
-    return {"cantidad": r["cantidad"], "total": r["total"] or 0}
 
 
 def _dias(request, default):
@@ -129,30 +125,7 @@ class MiDashboardView(APIView):
     permission_classes = [TieneEstudiante]
 
     def get(self, request):
-        est = request.user.estudiante
-        hoy = timezone.localdate()
-        dias = settings.DIAS_ALERTA_RUBRO
-        no_pagados = est.rubros.exclude(estado_pago=Rubro.EstadoPago.PAGADO)
-        insc = est.inscripciones
-        return Response(
-            {
-                "estudiante": est.nombre_completo,
-                "modulos": insc.count(),
-                "progreso_promedio": round(insc.aggregate(a=Avg("progreso"))["a"] or 0, 1),
-                "inscripciones_por_estado": {
-                    r["estado"]: r["n"] for r in insc.values("estado").annotate(n=Count("id"))
-                },
-                "hay_pagos_pendientes": no_pagados.exists(),
-                "dias_alerta": dias,
-                # vencidos: fecha pasada | por_vencer: vencen en los próximos `dias_alerta` días
-                # pendientes: no pagados que aún no vencen (incluye a los por_vencer)
-                "rubros_vencidos": _resumen(no_pagados.filter(fecha_vencimiento__lt=hoy)),
-                "rubros_por_vencer": _resumen(
-                    no_pagados.filter(fecha_vencimiento__range=(hoy, hoy + timedelta(days=dias)))
-                ),
-                "rubros_pendientes": _resumen(no_pagados.filter(fecha_vencimiento__gte=hoy)),
-            }
-        )
+        return Response(dashboard_estudiante(request.user.estudiante))
 
 
 # ---------- administración (solo staff) ----------

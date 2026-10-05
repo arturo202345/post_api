@@ -1,0 +1,17 @@
+{% extends "web/base.html" %}
+{% block titulo %}Perfil · Gestión Académica{% endblock %}
+{% block contenido %}
+<h1>Perfil</h1>
+<div class="tarjeta">
+  <div style="font-size:20px">{{ est.nombre_completo }}</div>
+  <div class="suave">@{{ user.username }}</div>
+</div>
+<div class="tarjeta lista">
+  <div class="dato"><div>{{ est.cedula }}</div><div class="suave">Cédula</div></div>
+  <div class="dato"><div>{{ est.correo|default:"—" }}</div><div class="suave">Correo</div></div>
+  <div class="dato"><div>{{ est.telefono|default:"—" }}</div><div class="suave">Teléfono</div></div>
+</div>
+<form method="post" action="{% url 'web:salir' %}">{% csrf_token %}
+  <button class="boton claro" type="submit">Cerrar sesión</button>
+</form>
+{% endblock %}

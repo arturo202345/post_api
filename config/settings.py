@@ -91,6 +91,7 @@ DATABASES = {
     }
 }
 
+
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 
@@ -157,3 +158,14 @@ SIMPLE_JWT = {
 
 # Días de anticipación para avisar de un rubro por vencer (alerta y notificaciones locales)
 DIAS_ALERTA_RUBRO = 5
+
+# ---------- Páginas web (sesión de Django) ----------
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/resumen/"
+
+# Render termina el HTTPS en su proxy: sin esto Django cree que la petición es http
+# y rechaza los formularios (CSRF) en producción.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "https://*.onrender.com").split(",")
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
