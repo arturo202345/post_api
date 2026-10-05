@@ -12,7 +12,9 @@ from .views import (
     MisInscripcionesView,
     MisRubrosView,
     ModuloViewSet,
+    RecuperarView,
     RegisterView,
+    RestablecerView,
     RubroViewSet,
 )
 
@@ -27,6 +29,8 @@ urlpatterns = [
     path("auth/register/", RegisterView.as_view()),
     path("auth/login/", LoginView.as_view()),
     path("auth/refresh/", TokenRefreshView.as_view()),
+    path("auth/recuperar/", RecuperarView.as_view()),
+    path("auth/recuperar/confirmar/", RestablecerView.as_view()),
     # estudiante autenticado
     path("me/", MeView.as_view()),
     path("me/inscripciones/", MisInscripcionesView.as_view()),

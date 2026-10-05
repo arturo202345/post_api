@@ -1,0 +1,22 @@
+{% extends "web/base.html" %}
+{% block titulo %}Recuperar acceso · Gestión Académica{% endblock %}
+{% block cuerpo %}
+<div class="auth">
+  <div class="centro">
+    {% include "web/_marca.html" with grande=True %}
+    <h1>Recupera tu acceso</h1>
+    <p class="suave" style="margin:0">Escribe tu cédula y te enviaremos un código al correo.</p>
+  </div>
+  <div class="caja">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <label for="cedula">Cédula</label>
+      <input id="cedula" name="cedula" inputmode="numeric" autocomplete="off" required autofocus>
+      {% if error %}<p class="error caja-error">{{ error }}</p>{% endif %}
+      <button class="boton" type="submit">Enviar código</button>
+    </form>
+    <p class="enlace"><a href="{% url 'web:login' %}">Volver a iniciar sesión</a></p>
+  </div>
+  <p class="pie">© {% now "Y" %} Gestión Académica. Todos los derechos reservados.</p>
+</div>
+{% endblock %}

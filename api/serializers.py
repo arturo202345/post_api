@@ -196,3 +196,16 @@ class RubroSerializer(serializers.ModelSerializer):
         if emision and venc and venc < emision:
             raise serializers.ValidationError("fecha_vencimiento no puede ser anterior a fecha_emision.")
         return attrs
+
+
+# ---------- recuperación de credenciales ----------
+
+
+class RecuperarSerializer(serializers.Serializer):
+    cedula = serializers.CharField(max_length=20)
+
+
+class RestablecerSerializer(serializers.Serializer):
+    cedula = serializers.CharField(max_length=20)
+    codigo = serializers.CharField(max_length=6)
+    password = serializers.CharField(write_only=True, style={"input_type": "password"})

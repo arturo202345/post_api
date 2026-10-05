@@ -1,0 +1,33 @@
+{% extends "web/base.html" %}
+{% block titulo %}Nueva contraseña · Gestión Académica{% endblock %}
+{% block cuerpo %}
+<div class="auth">
+  <div class="centro">
+    {% include "web/_marca.html" with grande=True %}
+    <h1>Escribe el código</h1>
+    <p class="suave" style="margin:0">Revisa tu correo (también el spam). El código vale 15 minutos.</p>
+  </div>
+  <div class="caja">
+    {% for m in messages %}<p class="aviso-ok">{{ m }}</p>{% endfor %}
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <label for="codigo">Código de 6 dígitos</label>
+      <input id="codigo" name="codigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required autofocus>
+      <label for="password">Nueva contraseña</label>
+      <div class="clave">
+        <input id="password" name="password" type="password" autocomplete="new-password" required>
+        <button type="button" class="ojo" aria-label="Mostrar u ocultar contraseña"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></button>
+      </div>
+      <label for="password2">Repite la contraseña</label>
+      <div class="clave">
+        <input id="password2" name="password2" type="password" autocomplete="new-password" required>
+        <button type="button" class="ojo" aria-label="Mostrar u ocultar contraseña"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></button>
+      </div>
+      {% if error %}<p class="error caja-error">{{ error }}</p>{% endif %}
+      <button class="boton" type="submit">Cambiar contraseña</button>
+    </form>
+    <p class="enlace">¿No llegó? <a href="{% url 'web:recuperar' %}">Pedir otro código</a></p>
+  </div>
+  <p class="pie">© {% now "Y" %} Gestión Académica. Todos los derechos reservados.</p>
+</div>
+{% endblock %}

@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework.test import APITestCase
@@ -146,6 +147,14 @@ class MisDatosTests(BaseTest):
         solo = self.client.get("/api/me/rubros/?estado_pago=PAGADO").data
         self.assertEqual(solo["count"], 1)
 
+    def test_filtro_estado_pago_usa_estado_efectivo(self):
+        """Un PENDIENTE con fecha pasada se lista como VENCIDO (igual que la web y la app)."""
+        self.login(self.u1)
+        venc = self.client.get("/api/me/rubros/?estado_pago=VENCIDO").data
+        self.assertEqual([x["concepto"] for x in venc["results"]], ["Vencido"])
+        pend = self.client.get("/api/me/rubros/?estado_pago=PENDIENTE").data
+        self.assertEqual(sorted(x["concepto"] for x in pend["results"]), ["En 3 días", "Lejano"])
+
     def test_dashboard_personal_y_alerta(self):
         self.login(self.u1)
         d = self.client.get("/api/me/dashboard/").data
@@ -186,3 +195,104 @@ class AdminTests(BaseTest):
         self.assertEqual(self.client.get("/api/estudiantes/").status_code, 200)
         self.assertEqual(self.client.get("/api/dashboard/").status_code, 200)
         self.assertEqual(self.client.get("/api/rubros/por-vencer/?dias=abc").status_code, 200)
+
+
+class RecuperacionTests(BaseTest):
+    def setUp(self):
+        super().setUp()
+        self.user, self.est = self.crear_usuario("juan", "0912345678")
+        mail.outbox = []
+
+    def pedir(self, cedula="0912345678"):
+        return self.client.post("/api/auth/recuperar/", {"cedula": cedula}, format="json")
+
+    def codigo_enviado(self):
+        import re
+        return re.search(r"contraseña es: (\d{6})", mail.outbox[-1].body).group(1)
+
+    def confirmar(self, codigo, password="Nueva-Clave-2027", cedula="0912345678"):
+        return self.client.post(
+            "/api/auth/recuperar/confirmar/",
+            {"cedula": cedula, "codigo": codigo, "password": password},
+            format="json",
+        )
+
+    def test_envia_codigo_y_usuario_al_correo(self):
+        r = self.pedir()
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["juan@example.com"])
+        self.assertIn("juan", mail.outbox[0].body)  # el usuario también se recupera
+
+    def test_cedula_inexistente_responde_igual_y_no_envia(self):
+        a, b = self.pedir(), self.pedir("999")
+        self.assertEqual(a.data, b.data)
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_no_reenvia_antes_de_un_minuto(self):
+        self.pedir()
+        self.pedir()
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_cambia_la_clave_con_el_codigo_y_no_se_reutiliza(self):
+        self.pedir()
+        codigo = self.codigo_enviado()
+        self.assertEqual(self.confirmar(codigo).status_code, 200)
+        r = self.client.post("/api/auth/login/", {"username": "juan", "password": "Nueva-Clave-2027"})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(self.confirmar(codigo, "Otra-Clave-2028").status_code, 400)
+
+    def test_codigo_incorrecto_y_limite_de_intentos(self):
+        self.pedir()
+        codigo = self.codigo_enviado()
+        mala = "000000" if codigo != "000000" else "111111"
+        for _ in range(5):
+            self.assertEqual(self.confirmar(mala).status_code, 400)
+        self.assertEqual(self.confirmar(codigo).status_code, 400)  # ya se agotaron los intentos
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(PASS))
+
+    def test_codigo_vencido(self):
+        from .models import CodigoRecuperacion
+        self.pedir()
+        codigo = self.codigo_enviado()
+        CodigoRecuperacion.objects.update(creado=timezone.now() - timedelta(minutes=16))
+        self.assertEqual(self.confirmar(codigo).status_code, 400)
+
+    def test_clave_debil_no_gasta_el_codigo(self):
+        self.pedir()
+        codigo = self.codigo_enviado()
+        r = self.confirmar(codigo, password="123")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("password", r.data)
+        self.assertEqual(self.confirmar(codigo).status_code, 200)
+
+    def test_codigo_de_otra_cedula_no_sirve(self):
+        self.crear_usuario("ana", "222")
+        self.pedir()
+        codigo = self.codigo_enviado()
+        self.assertEqual(self.confirmar(codigo, cedula="222").status_code, 400)
+
+
+class CorreoBrevoTests(BaseTest):
+    def test_envia_por_https_con_remitente_y_destinatario(self):
+        import json
+        from unittest import mock
+
+        from django.core.mail import EmailMessage
+
+        from .correo import BrevoEmailBackend
+
+        with mock.patch("api.correo.urllib.request.urlopen") as uo, mock.patch.dict(
+            "os.environ", {"BREVO_API_KEY": "clave"}
+        ):
+            n = BrevoEmailBackend().send_messages(
+                [EmailMessage("Asunto", "Hola", "Gestión <no-reply@example.com>", ["a@example.com"])]
+            )
+        self.assertEqual(n, 1)
+        req = uo.call_args[0][0]
+        self.assertEqual(req.get_header("Api-key"), "clave")
+        cuerpo = json.loads(req.data)
+        self.assertEqual(cuerpo["sender"], {"email": "no-reply@example.com", "name": "Gestión"})
+        self.assertEqual(cuerpo["to"], [{"email": "a@example.com"}])
+        self.assertEqual(cuerpo["textContent"], "Hola")

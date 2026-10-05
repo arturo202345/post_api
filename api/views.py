@@ -1,9 +1,10 @@
 from datetime import timedelta
 
 from django.conf import settings
-from django.db.models import Avg, Count, Sum
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Avg, Count
 from django.utils import timezone
-from rest_framework import filters, generics, permissions, status, viewsets
+from rest_framework import filters, generics, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -12,14 +13,24 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import Estudiante, EstudianteModulo, Modulo, Rubro
-from .servicios import dashboard_estudiante, resumen as _resumen
+from .servicios import (
+    MENSAJE_CODIGO,
+    CodigoInvalido,
+    dashboard_estudiante,
+    filtrar_estado_pago,
+    restablecer_clave,
+    resumen as _resumen,
+    solicitar_codigo,
+)
 from .serializers import (
     EstudianteModuloSerializer,
     EstudianteSerializer,
     LoginSerializer,
     ModuloSerializer,
     PerfilSerializer,
+    RecuperarSerializer,
     RegisterSerializer,
+    RestablecerSerializer,
     RubroSerializer,
     datos_usuario,
 )
@@ -78,6 +89,44 @@ class LoginView(TokenObtainPairView):
     throttle_scope = "auth"
 
 
+class RecuperarView(generics.GenericAPIView):
+    """Paso 1: recibe la cédula y envía un código al correo. La respuesta es siempre la misma."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    serializer_class = RecuperarSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        ser = self.get_serializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        solicitar_codigo(ser.validated_data["cedula"])
+        return Response({"detail": MENSAJE_CODIGO})
+
+
+class RestablecerView(generics.GenericAPIView):
+    """Paso 2: cédula + código del correo + nueva contraseña."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    serializer_class = RestablecerSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        ser = self.get_serializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        d = ser.validated_data
+        try:
+            restablecer_clave(d["cedula"], d["codigo"], d["password"])
+        except CodigoInvalido as e:
+            raise serializers.ValidationError({"codigo": [str(e)]})
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({"password": list(e.messages)})
+        return Response({"detail": "Contraseña actualizada. Ya puedes iniciar sesión."})
+
+
 # ---------- "mis datos" (el estudiante autenticado) ----------
 
 
@@ -115,8 +164,7 @@ class MisRubrosView(generics.ListAPIView):
 
     def get_queryset(self):
         qs = Rubro.objects.filter(estudiante=self.request.user.estudiante).select_related("estudiante")
-        estado = self.request.query_params.get("estado_pago")
-        return qs.filter(estado_pago=estado) if estado else qs
+        return filtrar_estado_pago(qs, self.request.query_params.get("estado_pago"))
 
 
 class MiDashboardView(APIView):
@@ -205,9 +253,7 @@ class RubroViewSet(viewsets.ModelViewSet):
         p = self.request.query_params
         if p.get("estudiante"):
             qs = qs.filter(estudiante=p["estudiante"])
-        if p.get("estado_pago"):
-            qs = qs.filter(estado_pago=p["estado_pago"])
-        return qs
+        return filtrar_estado_pago(qs, p.get("estado_pago"))
 
     @action(detail=False, methods=["get"], url_path="por-vencer")
     def por_vencer(self, request):

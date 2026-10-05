@@ -8,6 +8,7 @@
     <p class="suave" style="margin:0">Por favor, inicia sesión con tus credenciales.</p>
   </div>
   <div class="caja">
+    {% for m in messages %}<p class="aviso-ok">{{ m }}</p>{% endfor %}
     <form method="post" novalidate>
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ next }}">
@@ -21,6 +22,7 @@
       {% if error %}<p class="error caja-error">{{ error }}</p>{% endif %}
       <button class="boton" type="submit">Iniciar sesión</button>
     </form>
+    <p class="enlace"><a href="{% url 'web:recuperar' %}">¿Olvidaste tu usuario o contraseña?</a></p>
     <p class="enlace">¿No tienes cuenta? <a href="{% url 'web:registro' %}">Regístrate aquí.</a></p>
     <p class="ayuda">¿Experimentas algún inconveniente?<br>Por favor, comunícate con el administrador.</p>
   </div>

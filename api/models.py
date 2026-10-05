@@ -111,3 +111,14 @@ class Rubro(models.Model):
         ):
             return self.EstadoPago.VENCIDO
         return self.estado_pago
+
+class CodigoRecuperacion(models.Model):
+    """Código de un solo uso (enviado por correo) para recuperar usuario/contraseña."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="codigos_recuperacion"
+    )
+    codigo_hash = models.CharField(max_length=64)  # nunca se guarda el código en claro
+    creado = models.DateTimeField(auto_now_add=True)
+    intentos = models.PositiveSmallIntegerField(default=0)
+    usado = models.BooleanField(default=False)

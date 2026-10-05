@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.cache import cache
 from django.test import TestCase
 from django.utils import timezone
@@ -197,3 +198,40 @@ class PaginasTests(WebBase):
         self.assertContains(r, "Juan Test")
         self.assertContains(r, "@juan")
         self.assertContains(r, "111")
+
+
+class RecuperarWebTests(WebBase):
+    def test_flujo_completo_cedula_codigo_nueva_clave(self):
+        import re
+        self.crear_usuario("juan", "111")
+        self.assertEqual(self.client.get("/recuperar/").status_code, 200)
+        r = self.client.post("/recuperar/", {"cedula": "111"})
+        self.assertRedirects(r, "/recuperar/codigo/", fetch_redirect_response=False)
+        self.assertEqual(len(mail.outbox), 1)
+        codigo = re.search(r"contraseña es: (\d{6})", mail.outbox[0].body).group(1)
+
+        r = self.client.post("/recuperar/codigo/", {"codigo": codigo, "password": "Nueva-Clave-2027", "password2": "otra"})
+        self.assertContains(r, "Las contraseñas no coinciden.")
+        r = self.client.post(
+            "/recuperar/codigo/", {"codigo": codigo, "password": "Nueva-Clave-2027", "password2": "Nueva-Clave-2027"}
+        )
+        self.assertRedirects(r, "/login/", fetch_redirect_response=False)
+        r = self.client.post("/login/", {"username": "juan", "password": "Nueva-Clave-2027"})
+        self.assertRedirects(r, "/resumen/", fetch_redirect_response=False)
+
+    def test_codigo_incorrecto_muestra_error(self):
+        self.crear_usuario("juan", "111")
+        self.client.post("/recuperar/", {"cedula": "111"})
+        r = self.client.post("/recuperar/codigo/", {"codigo": "000000", "password": PASS, "password2": PASS})
+        self.assertContains(r, "Código incorrecto o vencido")
+
+    def test_paso_2_sin_cedula_vuelve_al_paso_1(self):
+        self.assertRedirects(self.client.get("/recuperar/codigo/"), "/recuperar/", fetch_redirect_response=False)
+
+    def test_cedula_inexistente_no_revela_nada(self):
+        r = self.client.post("/recuperar/", {"cedula": "999"})
+        self.assertRedirects(r, "/recuperar/codigo/", fetch_redirect_response=False)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_login_enlaza_a_recuperar(self):
+        self.assertContains(self.client.get("/login/"), "/recuperar/")

@@ -8,6 +8,7 @@ from functools import wraps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.cache import cache
 from django.db.models import Avg
 from django.shortcuts import redirect, render
@@ -16,7 +17,13 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .serializers import RegisterSerializer
-from .servicios import dashboard_estudiante
+from .servicios import (
+    MENSAJE_CODIGO,
+    CodigoInvalido,
+    dashboard_estudiante,
+    restablecer_clave,
+    solicitar_codigo,
+)
 
 INTENTOS_MAX = 10  # intentos fallidos de login permitidos...
 VENTANA = 300  # ...cada 5 minutos por IP
@@ -42,19 +49,19 @@ def estudiante_requerido(vista):
     return envoltura
 
 
-def _clave_intentos(request):
+def _clave_intentos(request, prefijo="login-fallos"):
     ip = request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip() or request.META.get(
         "REMOTE_ADDR", ""
     )
-    return f"login-fallos:{ip}"
+    return f"{prefijo}:{ip}"
 
 
-def _bloqueado(request):
-    return cache.get(_clave_intentos(request), 0) >= INTENTOS_MAX
+def _bloqueado(request, prefijo="login-fallos"):
+    return cache.get(_clave_intentos(request, prefijo), 0) >= INTENTOS_MAX
 
 
-def _registrar_fallo(request):
-    clave = _clave_intentos(request)
+def _registrar_fallo(request, prefijo="login-fallos"):
+    clave = _clave_intentos(request, prefijo)
     cache.add(clave, 0, VENTANA)
     try:
         cache.incr(clave)
@@ -157,6 +164,55 @@ def registro_view(request):
     conocidos = {c[0] for c in CAMPOS_REGISTRO}
     otros = [m for campo, lista in errores.items() if campo not in conocidos for m in lista]
     return render(request, "web/registro.html", {"campos": campos, "otros_errores": otros})
+
+
+def recuperar_view(request):
+    """Paso 1: pide la cédula y envía el código al correo."""
+    if request.user.is_authenticated:
+        return redirect("web:resumen")
+    error = None
+    if request.method == "POST":
+        cedula = request.POST.get("cedula", "").strip()
+        if not cedula:
+            error = "Escribe tu cédula."
+        elif _bloqueado(request, "recuperar"):
+            error = "Demasiados intentos. Espera unos minutos e inténtalo de nuevo."
+        else:
+            _registrar_fallo(request, "recuperar")  # cuenta cada petición para limitar el envío de correos
+            solicitar_codigo(cedula)
+            request.session["recuperar_cedula"] = cedula
+            messages.info(request, MENSAJE_CODIGO)
+            return redirect("web:recuperar_codigo")
+    return render(request, "web/recuperar.html", {"error": error})
+
+
+def recuperar_codigo_view(request):
+    """Paso 2: código recibido por correo + nueva contraseña."""
+    if request.user.is_authenticated:
+        return redirect("web:resumen")
+    cedula = request.session.get("recuperar_cedula")
+    if not cedula:
+        return redirect("web:recuperar")
+    error = None
+    if request.method == "POST":
+        codigo = request.POST.get("codigo", "").strip()
+        clave, clave2 = request.POST.get("password", ""), request.POST.get("password2", "")
+        if not codigo:
+            error = "Escribe el código que llegó a tu correo."
+        elif clave != clave2:
+            error = "Las contraseñas no coinciden."
+        else:
+            try:
+                restablecer_clave(cedula, codigo, clave)
+            except CodigoInvalido as e:
+                error = str(e)
+            except DjangoValidationError as e:
+                error = " ".join(e.messages)
+            else:
+                request.session.pop("recuperar_cedula", None)
+                messages.success(request, "Contraseña actualizada. Ya puedes iniciar sesión.")
+                return redirect("web:login")
+    return render(request, "web/recuperar_codigo.html", {"error": error})
 
 
 @require_POST
