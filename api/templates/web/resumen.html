@@ -2,7 +2,7 @@
 {% load web_extras %}
 {% block titulo %}Resumen · Gestión Académica{% endblock %}
 {% block contenido %}
-<h1>Hola, {{ primer_nombre }}</h1>
+<h1 class="saludo">¡Hola <strong>{{ primer_nombre }}</strong>, bienvenido a tu plataforma académica!</h1>
 
 {% if alerta %}
 <a class="alerta {{ alerta.clase }}" href="{% url 'web:rubros' %}">
@@ -10,11 +10,6 @@
   <span class="suave" style="color:#333">{{ alerta.detalle }}</span>
 </a>
 {% endif %}
-
-<div class="rejilla">
-  <div class="tarjeta"><div class="numero">{{ d.modulos }}</div><div class="suave">Módulos</div></div>
-  <div class="tarjeta"><div class="numero">{{ finalizados }}</div><div class="suave">Finalizados</div></div>
-</div>
 
 <div class="tarjeta">
   <div class="fila"><span>Progreso promedio</span><b>{{ d.progreso_promedio|pct }}%</b></div>
@@ -28,8 +23,28 @@
   {% endif %}
 </div>
 
-<h2>Pagos</h2>
-<div class="tarjeta fila"><div><div>Vencidos</div><div class="suave">{{ d.rubros_vencidos.cantidad }} rubro(s)</div></div><b style="color:var(--rojo)">{{ d.rubros_vencidos.total|dinero }}</b></div>
-<div class="tarjeta fila"><div><div>Vencen en {{ d.dias_alerta }} días</div><div class="suave">{{ d.rubros_por_vencer.cantidad }} rubro(s)</div></div><b style="color:var(--naranja)">{{ d.rubros_por_vencer.total|dinero }}</b></div>
-<div class="tarjeta fila"><div><div>Pendientes</div><div class="suave">{{ d.rubros_pendientes.cantidad }} rubro(s)</div></div><b style="color:#475569">{{ d.rubros_pendientes.total|dinero }}</b></div>
+<h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg>Mis módulos</h2>
+{% if modulos %}
+<div class="cuadricula">
+  {% for m in modulos %}
+  <div class="tarjeta modulo">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+    <div class="cuerpo">
+      <div class="titulo">{{ m.modulo.nombre }}</div>
+      <div class="suave"><span class="pill e-{{ m.estado }}">{{ m.estado|etiqueta }}</span> · {{ m.progreso|pct }}%</div>
+      <div class="barra"><div style="width:{{ m.progreso|pct }}%"></div></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="suave">Aún no estás matriculado en ningún módulo.</p>
+{% endif %}
+
+<h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Mis pagos</h2>
+<div class="cuadricula">
+  <div class="tarjeta fila"><div><div>Vencidos</div><div class="suave">{{ d.rubros_vencidos.cantidad }} rubro(s)</div></div><b style="color:var(--rojo)">{{ d.rubros_vencidos.total|dinero }}</b></div>
+  <div class="tarjeta fila"><div><div>Vencen en {{ d.dias_alerta }} días</div><div class="suave">{{ d.rubros_por_vencer.cantidad }} rubro(s)</div></div><b style="color:var(--naranja-txt)">{{ d.rubros_por_vencer.total|dinero }}</b></div>
+  <div class="tarjeta fila"><div><div>Pendientes</div><div class="suave">{{ d.rubros_pendientes.cantidad }} rubro(s)</div></div><b style="color:#475569">{{ d.rubros_pendientes.total|dinero }}</b></div>
+</div>
 {% endblock %}

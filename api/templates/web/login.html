@@ -3,20 +3,27 @@
 {% block cuerpo %}
 <div class="auth">
   <div class="centro">
-    <div class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg></div>
-    <h1 style="margin:0">Gestión Académica</h1>
-    <p class="suave">Inicia sesión para ver tu progreso</p>
+    {% include "web/_marca.html" with grande=True %}
+    <h1>¡Bienvenido/a a tu plataforma académica!</h1>
+    <p class="suave" style="margin:0">Por favor, inicia sesión con tus credenciales.</p>
   </div>
-  <form method="post" novalidate>
-    {% csrf_token %}
-    <input type="hidden" name="next" value="{{ next }}">
-    <label for="username">Usuario</label>
-    <input id="username" name="username" value="{{ usuario }}" autocomplete="username" autocapitalize="none" required autofocus>
-    <label for="password">Contraseña</label>
-    <input id="password" name="password" type="password" autocomplete="current-password" required>
-    {% if error %}<p class="error caja">{{ error }}</p>{% endif %}
-    <button class="boton" type="submit">Iniciar sesión</button>
-  </form>
-  <p class="enlace"><a href="{% url 'web:registro' %}">¿No tienes cuenta? Crear cuenta</a></p>
+  <div class="caja">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <label for="username">Usuario</label>
+      <input id="username" name="username" value="{{ usuario }}" autocomplete="username" autocapitalize="none" required autofocus>
+      <label for="password">Contraseña</label>
+      <div class="clave">
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button type="button" class="ojo" aria-label="Mostrar u ocultar contraseña"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></button>
+      </div>
+      {% if error %}<p class="error caja-error">{{ error }}</p>{% endif %}
+      <button class="boton" type="submit">Iniciar sesión</button>
+    </form>
+    <p class="enlace">¿No tienes cuenta? <a href="{% url 'web:registro' %}">Regístrate aquí.</a></p>
+    <p class="ayuda">¿Experimentas algún inconveniente?<br>Por favor, comunícate con el administrador.</p>
+  </div>
+  <p class="pie">© {% now "Y" %} Gestión Académica. Todos los derechos reservados.</p>
 </div>
 {% endblock %}

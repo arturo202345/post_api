@@ -200,7 +200,7 @@ def resumen(request):
             "d": d,
             "alerta": alerta,
             "primer_nombre": request.estudiante.nombres.split()[0] if request.estudiante.nombres else "",
-            "finalizados": d["inscripciones_por_estado"].get("FINALIZADO", 0),
+            "modulos": request.estudiante.inscripciones.select_related("modulo").order_by("modulo__nombre"),
         },
     )
 

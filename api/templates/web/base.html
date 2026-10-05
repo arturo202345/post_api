@@ -5,66 +5,99 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}Gestión Académica{% endblock %}</title>
   <style>
-    :root { --color:#2F5D62; --fondo:#F7F8F8; --borde:#e5e7e7; --texto:#1c1f1f; --suave:#6b7373;
-            --verde:#16a34a; --rojo:#dc2626; --naranja:#c2620a; --azul:#2563eb; }
+    :root { --marino:#16206B; --naranja:#FF6B1A; --azul:#2C3FA6; --boton:#5C6CC0; --enlace:#0E93CC;
+            --fondo:#EEF0F7; --campo:#E7EDFB; --borde:#D5DAEA; --texto:#1A2250; --suave:#5F6788;
+            --verde:#16a34a; --rojo:#dc2626; --naranja-txt:#B45309; --celeste:#2563eb; }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--fondo); color:var(--texto);
            font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.4; }
-    a { color:var(--color); }
-    .cabecera { background:#fff; border-bottom:1px solid var(--borde); }
-    .cabecera .dentro { max-width:720px; margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:12px; }
-    .marca { font-weight:600; flex:1; display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--texto); }
-    .logo { width:32px; height:32px; border-radius:9px; background:var(--color); display:flex; align-items:center; justify-content:center; }
-    .logo svg { width:18px; height:18px; fill:#fff; }
+    a { color:var(--azul); }
+    /* ---- marca ---- */
+    .marca { display:inline-flex; align-items:center; gap:8px; text-decoration:none; }
+    .marca .logo { width:30px; height:30px; border-radius:50%; background:var(--naranja); display:flex; align-items:center; justify-content:center; flex:none; }
+    .marca .logo svg { width:17px; height:17px; fill:#fff; }
+    .marca .nombre { font-weight:800; font-size:16px; letter-spacing:-.5px; color:var(--azul); }
+    .marca.clara .nombre { color:#fff; }
+    .marca.grande { gap:12px; } .marca.grande .logo { width:52px; height:52px; } .marca.grande .logo svg { width:30px; height:30px; }
+    .marca.grande .nombre { font-size:28px; }
+    /* ---- cabecera ---- */
+    .cabecera { background:var(--marino); border-bottom:4px solid var(--naranja); }
+    .cabecera .dentro { max-width:1000px; margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:10px; }
+    .cabecera .marca { flex:1; }
     .menu { display:flex; gap:4px; }
-    .menu a { text-decoration:none; color:var(--suave); padding:8px 14px; border-radius:20px; font-size:14px; }
-    .menu a.activa { background:rgba(47,93,98,.12); color:var(--color); font-weight:600; }
-    .salir button { background:none; border:0; color:var(--suave); font-size:14px; cursor:pointer; padding:8px; }
-    main { max-width:720px; margin:0 auto; padding:20px 16px 90px; }
-    h1 { font-size:24px; margin:0 0 16px; font-weight:600; }
-    h2 { font-size:16px; margin:24px 0 8px; font-weight:600; }
-    .tarjeta { background:#fff; border:1px solid var(--borde); border-radius:14px; padding:16px; margin-bottom:10px; }
+    .menu a { text-decoration:none; color:rgba(255,255,255,.78); padding:8px 14px; border-radius:8px; font-size:14px; }
+    .menu a:hover { background:rgba(255,255,255,.08); }
+    .menu a.activa { background:rgba(255,255,255,.16); color:#fff; font-weight:600; }
+    .campana { position:relative; display:flex; padding:6px; border-radius:50%; }
+    .campana svg { width:22px; height:22px; fill:#fff; }
+    .badge { position:absolute; top:0; right:-2px; background:var(--naranja); color:#fff; font-size:10px; font-weight:700; border-radius:10px; padding:1px 5px; min-width:16px; text-align:center; }
+    .avatar { width:34px; height:34px; border-radius:50%; background:#fff; color:var(--marino); font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+    .salir button { background:none; border:0; color:rgba(255,255,255,.78); font-size:14px; cursor:pointer; padding:8px; }
+    .salir button:hover { color:#fff; }
+    main { max-width:1000px; margin:0 auto; padding:22px 16px 96px; }
+    h1 { font-size:22px; margin:0 0 16px; font-weight:600; }
+    h1.saludo { font-weight:400; font-size:20px; } h1.saludo strong { font-weight:700; }
+    h2 { font-size:17px; margin:26px 0 10px; font-weight:700; display:flex; align-items:center; gap:8px; }
+    h2 svg { width:20px; height:20px; fill:var(--marino); }
+    /* ---- tarjetas ---- */
+    .tarjeta { background:#fff; border:1px solid var(--borde); border-radius:10px; padding:16px; margin-bottom:10px; }
     .fila { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-    .rejilla { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
-    .rejilla .tarjeta { margin:0; }
-    .numero { font-size:28px; font-weight:500; }
     .suave { color:var(--suave); font-size:13px; }
-    .barra { height:8px; border-radius:8px; background:#e5e7eb; overflow:hidden; margin-top:8px; }
-    .barra > div { height:100%; background:var(--color); border-radius:8px; }
+    .barra { height:8px; border-radius:8px; background:#e3e6ef; overflow:hidden; margin-top:8px; }
+    .barra > div { height:100%; background:var(--azul); border-radius:8px; }
+    .cuadricula { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:10px; }
+    .cuadricula .tarjeta { margin:0; }
+    .modulo { display:flex; align-items:center; gap:14px; }
+    .modulo > svg { width:32px; height:32px; fill:var(--suave); flex:none; }
+    .modulo .cuerpo { flex:1; border-left:1px solid var(--borde); padding-left:14px; min-width:0; }
+    .modulo .titulo { font-weight:700; font-size:15px; }
     .pill { display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; background:#eee; color:#555; }
     .e-PAGADO,.e-FINALIZADO { background:rgba(22,163,74,.12); color:var(--verde); }
     .e-VENCIDO { background:rgba(220,38,38,.12); color:var(--rojo); }
-    .e-PENDIENTE { background:rgba(194,98,10,.12); color:var(--naranja); }
-    .e-EN_CURSO { background:rgba(37,99,235,.12); color:var(--azul); }
+    .e-PENDIENTE { background:rgba(194,98,10,.12); color:var(--naranja-txt); }
+    .e-EN_CURSO { background:rgba(37,99,235,.12); color:var(--celeste); }
     .pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
-    .alerta { display:block; text-decoration:none; color:inherit; border-radius:14px; padding:14px; margin-bottom:12px; border:1px solid; }
+    .alerta { display:block; text-decoration:none; color:inherit; border-radius:10px; padding:14px; margin-bottom:12px; border:1px solid; }
     .alerta b { display:block; }
     .alerta.rojo { background:rgba(220,38,38,.07); border-color:rgba(220,38,38,.35); } .alerta.rojo b { color:var(--rojo); }
-    .alerta.naranja { background:rgba(194,98,10,.08); border-color:rgba(194,98,10,.35); } .alerta.naranja b { color:var(--naranja); }
+    .alerta.naranja { background:rgba(194,98,10,.08); border-color:rgba(194,98,10,.35); } .alerta.naranja b { color:var(--naranja-txt); }
     .alerta.gris { background:rgba(100,116,139,.08); border-color:rgba(100,116,139,.35); } .alerta.gris b { color:#475569; }
     .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
     .chips a { text-decoration:none; padding:6px 14px; border-radius:20px; border:1px solid var(--borde); background:#fff; color:var(--texto); font-size:13px; }
-    .chips a.activo { background:rgba(47,93,98,.12); border-color:var(--color); color:var(--color); font-weight:600; }
+    .chips a.activo { background:var(--campo); border-color:var(--azul); color:var(--azul); font-weight:600; }
     .valor { font-weight:700; text-align:right; }
-    /* formularios */
-    .auth { max-width:420px; margin:0 auto; padding:32px 16px; }
-    .auth .centro { text-align:center; margin-bottom:24px; }
-    .auth .logo { width:52px; height:52px; border-radius:14px; margin:0 auto 12px; } .auth .logo svg { width:28px; height:28px; }
-    label { display:block; font-size:13px; color:var(--suave); margin:12px 0 4px; }
-    input { width:100%; padding:11px 12px; border:1px solid #d3d7d7; border-radius:12px; font-size:15px; background:#fff; }
-    input:focus { outline:2px solid rgba(47,93,98,.35); border-color:var(--color); }
-    .boton { width:100%; margin-top:18px; padding:12px; border:0; border-radius:24px; background:var(--color); color:#fff; font-size:15px; cursor:pointer; }
-    .boton.claro { background:#fff; color:var(--texto); border:1px solid var(--borde); }
-    .error { color:var(--rojo); font-size:13px; margin:4px 0 0; }
-    .error.caja { margin:12px 0 0; }
-    .mensaje { background:rgba(22,163,74,.1); border:1px solid rgba(22,163,74,.35); color:#166534; border-radius:12px; padding:10px 14px; margin-bottom:14px; font-size:14px; }
-    .enlace { text-align:center; margin-top:16px; font-size:14px; }
     .dato { padding:12px 16px; border-bottom:1px solid var(--borde); } .dato:last-child { border:0; }
     .tarjeta.lista { padding:0; }
-    /* menú inferior en el celular, como la app */
+    .mensaje { background:rgba(22,163,74,.1); border:1px solid rgba(22,163,74,.35); color:#166534; border-radius:10px; padding:10px 14px; margin-bottom:14px; font-size:14px; }
+    /* ---- inicio de sesión y registro ---- */
+    .auth { max-width:440px; margin:0 auto; padding:36px 16px 24px; }
+    .auth .centro { text-align:center; margin-bottom:22px; }
+    .auth .centro .marca { margin-bottom:22px; }
+    .auth h1 { font-size:18px; font-weight:700; margin:0 0 6px; }
+    .auth .caja { background:#fff; border-radius:14px; padding:28px 24px 20px; box-shadow:0 1px 2px rgba(22,32,107,.06); }
+    label { display:block; font-size:13px; color:var(--suave); margin:14px 0 4px; } label:first-of-type { margin-top:0; }
+    input { width:100%; padding:13px 14px; border:1px solid var(--borde); border-radius:8px; font-size:15px; background:var(--campo); color:var(--texto); }
+    input:focus { outline:2px solid rgba(44,63,166,.35); border-color:var(--azul); }
+    .clave { position:relative; } .clave input { padding-right:46px; }
+    .ojo { position:absolute; right:4px; top:50%; transform:translateY(-50%); width:38px; height:38px; border:0; background:none; cursor:pointer; border-radius:8px; }
+    .ojo svg { width:20px; height:20px; fill:var(--suave); }
+    .boton { width:100%; margin-top:20px; padding:13px; border:0; border-radius:8px; background:var(--boton); color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+    .boton:hover { background:#4F5FB2; }
+    .boton.claro { background:#fff; color:var(--texto); border:1px solid var(--borde); }
+    .boton.claro:hover { background:var(--campo); }
+    .error { color:var(--rojo); font-size:13px; margin:4px 0 0; }
+    .error.caja-error { margin:14px 0 0; }
+    .enlace { text-align:center; margin:16px 0 0; font-size:14px; color:var(--suave); }
+    .enlace a { color:var(--enlace); font-weight:600; text-decoration:none; } .enlace a:hover { text-decoration:underline; }
+    .ayuda { text-align:center; margin:22px 0 0; font-size:12px; color:var(--suave); }
+    .pie { text-align:center; font-size:11px; color:var(--suave); margin:18px 0 0; }
+    /* ---- celular: menú inferior, como la app ---- */
     @media (max-width:639px) {
       .menu { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--borde); padding:6px 4px; gap:0; z-index:5; }
-      .menu a { flex:1; text-align:center; border-radius:12px; padding:10px 2px; font-size:12px; }
+      .menu a { flex:1; text-align:center; border-radius:8px; padding:10px 2px; font-size:12px; color:var(--suave); }
+      .menu a:hover { background:none; }
+      .menu a.activa { background:var(--campo); color:var(--azul); }
+      .marca .nombre { font-size:15px; }
     }
   </style>
 </head>
@@ -72,9 +105,9 @@
   {% if pagina %}
   <header class="cabecera">
     <div class="dentro">
-      <a class="marca" href="{% url 'web:resumen' %}">
+      <a class="marca clara" href="{% url 'web:resumen' %}" style="text-decoration:none">
         <span class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg></span>
-        Gestión Académica
+        <span class="nombre">gestión académica</span>
       </a>
       <nav class="menu" aria-label="Principal">
         <a href="{% url 'web:resumen' %}" class="{% if pagina == 'resumen' %}activa{% endif %}">Resumen</a>
@@ -82,6 +115,11 @@
         <a href="{% url 'web:rubros' %}" class="{% if pagina == 'rubros' %}activa{% endif %}">Rubros</a>
         <a href="{% url 'web:perfil' %}" class="{% if pagina == 'perfil' %}activa{% endif %}">Perfil</a>
       </nav>
+      <a class="campana" href="{% url 'web:rubros' %}" aria-label="Pagos por vencer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+        {% if nav_avisos %}<span class="badge">{{ nav_avisos }}</span>{% endif %}
+      </a>
+      <a class="avatar" href="{% url 'web:perfil' %}" aria-label="Mi perfil">{{ nav_iniciales }}</a>
       <form class="salir" method="post" action="{% url 'web:salir' %}">{% csrf_token %}<button type="submit">Salir</button></form>
     </div>
   </header>
@@ -92,5 +130,11 @@
     {% block contenido %}{% endblock %}
   </main>
   {% endblock %}
+  <script>
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('.ojo'); if (!b) return;
+      var i = b.parentElement.querySelector('input'); i.type = i.type === 'password' ? 'text' : 'password';
+    });
+  </script>
 </body>
 </html>

@@ -155,7 +155,9 @@ class PaginasTests(WebBase):
 
     def test_resumen_con_alerta_roja_y_barras(self):
         r = self.client.get("/resumen/")
-        self.assertContains(r, "Hola, Juan")
+        self.assertContains(r, "¡Hola <strong>Juan</strong>")
+        self.assertContains(r, "Base de Datos")  # tarjetas de módulos
+        self.assertContains(r, '<span class="badge">2</span>')  # campana: 1 vencido + 1 por vencer
         self.assertContains(r, "1 rubro(s) vencido(s)")
         self.assertContains(r, "alerta rojo")
         self.assertContains(r, "width:80%")  # progreso promedio (60 y 100)
