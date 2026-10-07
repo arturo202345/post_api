@@ -235,3 +235,59 @@ class RecuperarWebTests(WebBase):
 
     def test_login_enlaza_a_recuperar(self):
         self.assertContains(self.client.get("/login/"), "/recuperar/")
+
+
+class InsigniasWebTests(WebBase):
+    def test_pagina_muestra_insignia_del_modulo_aprobado(self):
+        from .models import EstudianteModulo, Modulo
+
+        u, e = self.crear_usuario("juan", "111")
+        ok = Modulo.objects.create(nombre="Python Básico")
+        pend = Modulo.objects.create(nombre="Bases de Datos")
+        EstudianteModulo.objects.create(estudiante=e, modulo=ok, progreso=100, estado="FINALIZADO")
+        EstudianteModulo.objects.create(estudiante=e, modulo=pend, progreso=30, estado="EN_CURSO")
+        self.client.login(username="juan", password=PASS)
+        r = self.client.get("/insignias/")
+        self.assertContains(r, "Tienes 1 de 2")
+        self.assertContains(r, "Python Básico")
+        self.assertContains(r, "PB")  # iniciales dentro de la medalla
+        self.assertContains(r, "En progreso · 30%")
+        self.assertContains(self.client.get("/resumen/"), "/insignias/")  # enlace en el menú
+
+    def test_requiere_sesion(self):
+        self.assertEqual(self.client.get("/insignias/").status_code, 302)
+
+
+class AdminTemaTests(WebBase):
+    def test_login_del_admin_carga_el_tema(self):
+        r = self.client.get("/admin/login/")
+        self.assertContains(r, "api/admin_tema.css")
+        self.assertContains(r, "gestión académica")
+
+    def test_listados_del_admin_funcionan_y_muestran_estado_efectivo(self):
+        from datetime import timedelta
+
+        from django.contrib.auth import get_user_model
+        from django.utils import timezone
+
+        from .models import EstudianteModulo, Modulo, Rubro
+
+        get_user_model().objects.create_superuser("admin", "a@example.com", PASS)
+        _, e = self.crear_usuario("juan", "111")
+        m = Modulo.objects.create(nombre="Python")
+        EstudianteModulo.objects.create(estudiante=e, modulo=m, progreso=100, estado="FINALIZADO")
+        Rubro.objects.create(
+            estudiante=e, concepto="Matrícula", valor=10, fecha_vencimiento=timezone.localdate() - timedelta(days=3)
+        )
+        Rubro.objects.create(
+            estudiante=e, concepto="Mensualidad", valor=50, estado_pago="PAGADO",
+            fecha_vencimiento=timezone.localdate() + timedelta(days=20),
+        )
+        self.client.login(username="admin", password=PASS)
+        self.assertContains(self.client.get("/admin/"), "Panel de administración")
+        for modelo in ("estudiante", "modulo", "estudiantemodulo"):
+            self.assertEqual(self.client.get(f"/admin/api/{modelo}/").status_code, 200)
+        r = self.client.get("/admin/api/rubro/")
+        self.assertContains(r, "Vencido")  # PENDIENTE con fecha pasada
+        self.assertContains(r, "Pagado")
+        self.assertContains(self.client.get("/admin/api/estudiantemodulo/"), "Finalizado")

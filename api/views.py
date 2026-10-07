@@ -18,6 +18,7 @@ from .servicios import (
     CodigoInvalido,
     dashboard_estudiante,
     filtrar_estado_pago,
+    insignias_estudiante,
     restablecer_clave,
     resumen as _resumen,
     solicitar_codigo,
@@ -154,6 +155,15 @@ class MisInscripcionesView(generics.ListAPIView):
         )
         estado = self.request.query_params.get("estado")
         return (qs.filter(estado=estado) if estado else qs).order_by("modulo__nombre")
+
+
+class MisInsigniasView(APIView):
+    """Insignia de cada módulo matriculado; `obtenida` es true cuando el módulo está aprobado."""
+
+    permission_classes = [TieneEstudiante]
+
+    def get(self, request):
+        return Response(insignias_estudiante(request.user.estudiante))
 
 
 class MisRubrosView(generics.ListAPIView):

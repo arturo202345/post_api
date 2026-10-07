@@ -87,6 +87,13 @@
     .boton.claro:hover { background:var(--campo); }
     .error { color:var(--rojo); font-size:13px; margin:4px 0 0; }
     .error.caja-error { margin:14px 0 0; }
+    .insignias { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+    .insignia { text-align:center; padding:20px 10px 14px; margin:0; }
+    .medalla { width:84px; height:84px; margin:0 auto 14px; border-radius:50%; background:var(--c); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:26px; letter-spacing:-1px; box-shadow:0 0 0 4px #fff, 0 0 0 7px var(--c); }
+    .medalla svg { width:34px; height:34px; fill:#fff; }
+    .insignia.bloqueada { opacity:.7; }
+    .insignia.bloqueada .medalla { background:#cfd4e6; box-shadow:0 0 0 4px #fff, 0 0 0 7px #e1e5f2; }
+    .insignia .titulo { font-weight:700; font-size:14px; }
     .aviso-ok { color:var(--verde); font-size:13px; margin:0 0 14px; }
     .enlace { text-align:center; margin:16px 0 0; font-size:14px; color:var(--suave); }
     .enlace a { color:var(--enlace); font-weight:600; text-decoration:none; } .enlace a:hover { text-decoration:underline; }
@@ -113,6 +120,7 @@
       <nav class="menu" aria-label="Principal">
         <a href="{% url 'web:resumen' %}" class="{% if pagina == 'resumen' %}activa{% endif %}">Resumen</a>
         <a href="{% url 'web:progreso' %}" class="{% if pagina == 'progreso' %}activa{% endif %}">Progreso</a>
+        <a href="{% url 'web:insignias' %}" class="{% if pagina == 'insignias' %}activa{% endif %}">Insignias</a>
         <a href="{% url 'web:rubros' %}" class="{% if pagina == 'rubros' %}activa{% endif %}">Rubros</a>
         <a href="{% url 'web:perfil' %}" class="{% if pagina == 'perfil' %}activa{% endif %}">Perfil</a>
       </nav>

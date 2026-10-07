@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.core import mail
@@ -296,3 +296,52 @@ class CorreoBrevoTests(BaseTest):
         self.assertEqual(cuerpo["sender"], {"email": "no-reply@example.com", "name": "Gestión"})
         self.assertEqual(cuerpo["to"], [{"email": "a@example.com"}])
         self.assertEqual(cuerpo["textContent"], "Hola")
+
+    def test_error_de_brevo_incluye_el_motivo(self):
+        import io
+        import urllib.error
+        from unittest import mock
+
+        from django.core.mail import EmailMessage
+
+        from .correo import BrevoEmailBackend
+
+        err = urllib.error.HTTPError("u", 400, "Bad Request", {}, io.BytesIO(b'{"message":"sender invalido"}'))
+        with mock.patch("api.correo.urllib.request.urlopen", side_effect=err):
+            with self.assertRaisesRegex(RuntimeError, "400.*sender invalido"):
+                BrevoEmailBackend().send_messages([EmailMessage("A", "B", "x@example.com", ["a@example.com"])])
+
+
+class InsigniasTests(BaseTest):
+    def setUp(self):
+        super().setUp()
+        self.u, self.est = self.crear_usuario("juan", "111")
+        self.py = Modulo.objects.create(nombre="Introducción a Python")
+        self.web = Modulo.objects.create(nombre="Desarrollo Web")
+        EstudianteModulo.objects.create(
+            estudiante=self.est, modulo=self.py, progreso=100,
+            estado=EstudianteModulo.Estado.FINALIZADO, fecha_finalizacion=date(2026, 9, 1),
+        )
+        EstudianteModulo.objects.create(
+            estudiante=self.est, modulo=self.web, progreso=40, estado=EstudianteModulo.Estado.EN_CURSO
+        )
+
+    def test_modulo_aprobado_da_insignia_y_los_demas_quedan_bloqueados(self):
+        self.login(self.u)
+        r = self.client.get("/api/me/insignias/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual([x["modulo"] for x in r.data], ["Introducción a Python", "Desarrollo Web"])
+        py, web = r.data
+        self.assertTrue(py["obtenida"])
+        self.assertEqual(py["iniciales"], "IP")  # ignora palabras cortas como "a"
+        self.assertEqual(py["fecha"], date(2026, 9, 1))
+        self.assertFalse(web["obtenida"])
+        self.assertEqual(web["progreso"], 40)
+        self.assertTrue(py["color"].startswith("#"))
+
+    def test_solo_ve_las_suyas_y_exige_estudiante(self):
+        otro, _ = self.crear_usuario("ana", "222")
+        self.login(otro)
+        self.assertEqual(self.client.get("/api/me/insignias/").data, [])
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get("/api/me/insignias/").status_code, 401)

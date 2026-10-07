@@ -21,6 +21,7 @@ from .servicios import (
     MENSAJE_CODIGO,
     CodigoInvalido,
     dashboard_estudiante,
+    insignias_estudiante,
     restablecer_clave,
     solicitar_codigo,
 )
@@ -269,6 +270,20 @@ def progreso(request):
         request,
         "web/progreso.html",
         {"pagina": "progreso", "inscripciones": inscripciones, "general": general},
+    )
+
+
+@estudiante_requerido
+def insignias(request):
+    items = insignias_estudiante(request.estudiante)
+    return render(
+        request,
+        "web/insignias.html",
+        {
+            "pagina": "insignias",
+            "insignias": items,
+            "obtenidas": sum(1 for i in items if i["obtenida"]),
+        },
     )
 
 

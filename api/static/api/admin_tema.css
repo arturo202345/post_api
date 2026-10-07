@@ -1,0 +1,94 @@
+/* Tema del admin: azul marino + naranja, igual que la web y la app.
+   Solo recolorea el modo claro; el modo oscuro de Django queda como está. */
+
+html[data-theme="light"] {
+    --primary: #5C6CC0;
+    --secondary: #2C3FA6;
+    --accent: #FF6B1A;
+    --breadcrumbs-fg: #D5DAFC;
+    --breadcrumbs-bg: #2C3FA6;
+    --link-fg: #2C3FA6;
+    --link-hover-color: #16206B;
+    --link-selected-fg: #2C3FA6;
+    --hairline-color: #E1E5F2;
+    --border-color: #D5DAEA;
+    --darkened-bg: #F4F6FB;
+    --selected-bg: #E7EDFB;
+    --selected-row: #EEF2FF;
+    --button-bg: #5C6CC0;
+    --button-hover-bg: #2C3FA6;
+    --default-button-bg: #2C3FA6;
+    --default-button-hover-bg: #16206B;
+    --object-tools-bg: #5C6CC0;
+    --object-tools-hover-bg: #2C3FA6;
+}
+
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+        --primary: #5C6CC0;
+        --secondary: #2C3FA6;
+        --accent: #FF6B1A;
+        --breadcrumbs-fg: #D5DAFC;
+        --breadcrumbs-bg: #2C3FA6;
+        --link-fg: #2C3FA6;
+        --link-hover-color: #16206B;
+        --link-selected-fg: #2C3FA6;
+        --hairline-color: #E1E5F2;
+        --border-color: #D5DAEA;
+        --darkened-bg: #F4F6FB;
+        --selected-bg: #E7EDFB;
+        --selected-row: #EEF2FF;
+        --button-bg: #5C6CC0;
+        --button-hover-bg: #2C3FA6;
+        --default-button-bg: #2C3FA6;
+        --default-button-hover-bg: #16206B;
+        --object-tools-bg: #5C6CC0;
+        --object-tools-hover-bg: #2C3FA6;
+    }
+}
+
+/* ---- barra superior (en claro y oscuro) ---- */
+#header {
+    background: #16206B;
+    border-bottom: 4px solid #FF6B1A;
+}
+#header, #header a:link, #header a:visited, #user-tools a:link, #user-tools a:visited {
+    color: #fff;
+}
+#site-name a:link, #site-name a:visited {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -.5px;
+}
+#site-name a::before {
+    content: "🎓";
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #FF6B1A;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+/* ---- tarjetas y controles ---- */
+.module h2, .module caption, .inline-group h2 { font-weight: 600; letter-spacing: .2px; border-radius: 10px 10px 0 0; }
+input[type="submit"], .button, a.button, .submit-row a.deletelink, .object-tools a {
+    border-radius: 8px;
+    font-weight: 600;
+}
+.login #container { border-radius: 14px; }
+
+/* ---- etiquetas de estado en los listados ---- */
+.pill-estado {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .3px;
+}

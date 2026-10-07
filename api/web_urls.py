@@ -13,6 +13,7 @@ urlpatterns = [
     path("salir/", v.salir, name="salir"),
     path("resumen/", v.resumen, name="resumen"),
     path("progreso/", v.progreso, name="progreso"),
+    path("insignias/", v.insignias, name="insignias"),
     path("rubros/", v.rubros, name="rubros"),
     path("perfil/", v.perfil, name="perfil"),
 ]

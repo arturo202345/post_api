@@ -10,7 +10,7 @@ from django.db.models import Avg, Count, Q, Sum
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, salted_hmac
 
-from .models import CodigoRecuperacion, Estudiante, Rubro
+from .models import CodigoRecuperacion, Estudiante, EstudianteModulo, Rubro
 
 log = logging.getLogger(__name__)
 
@@ -65,6 +65,36 @@ def dashboard_estudiante(est):
         ),
         "rubros_pendientes": resumen(no_pagados.filter(fecha_vencimiento__gte=hoy)),
     }
+
+
+# ---------- insignias ----------
+
+# Un color por módulo (según su id); web y app usan el mismo.
+COLORES_INSIGNIA = ["#2C3FA6", "#FF6B1A", "#16A34A", "#7C3AED", "#0E93CC", "#DB2777"]
+
+
+def _iniciales(nombre):
+    palabras = [p for p in nombre.split() if len(p) > 2] or nombre.split()
+    return "".join(p[0] for p in palabras[:2]).upper() or "?"
+
+
+def insignias_estudiante(est):
+    """Una insignia por módulo matriculado. Se obtiene al aprobarlo (estado FINALIZADO).
+    Primero van las obtenidas."""
+    items = [
+        {
+            "modulo_id": i.modulo_id,
+            "modulo": i.modulo.nombre,
+            "iniciales": _iniciales(i.modulo.nombre),
+            "color": COLORES_INSIGNIA[i.modulo_id % len(COLORES_INSIGNIA)],
+            "progreso": i.progreso,
+            "obtenida": i.estado == EstudianteModulo.Estado.FINALIZADO,
+            "fecha": i.fecha_finalizacion,
+        }
+        for i in est.inscripciones.select_related("modulo").order_by("modulo__nombre")
+    ]
+    items.sort(key=lambda x: not x["obtenida"])  # estable: conserva el orden por nombre
+    return items
 
 
 # ---------- recuperación de credenciales ----------

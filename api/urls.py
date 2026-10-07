@@ -9,6 +9,7 @@ from .views import (
     LoginView,
     MeView,
     MiDashboardView,
+    MisInsigniasView,
     MisInscripcionesView,
     MisRubrosView,
     ModuloViewSet,
@@ -34,6 +35,7 @@ urlpatterns = [
     # estudiante autenticado
     path("me/", MeView.as_view()),
     path("me/inscripciones/", MisInscripcionesView.as_view()),
+    path("me/insignias/", MisInsigniasView.as_view()),
     path("me/rubros/", MisRubrosView.as_view()),
     path("me/dashboard/", MiDashboardView.as_view()),
     # administración (staff)

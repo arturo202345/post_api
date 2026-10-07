@@ -1,0 +1,24 @@
+{% extends "web/base.html" %}
+{% block titulo %}Insignias · Gestión Académica{% endblock %}
+{% block contenido %}
+<h1>Mis insignias</h1>
+<p class="suave" style="margin-top:0">Aprueba un módulo y ganas su insignia. Tienes {{ obtenidas }} de {{ insignias|length }}.</p>
+
+<div class="insignias">
+  {% for i in insignias %}
+  <div class="tarjeta insignia{% if not i.obtenida %} bloqueada{% endif %}" style="--c:{{ i.color }}">
+    <div class="medalla">
+      {% if i.obtenida %}{{ i.iniciales }}{% else %}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM9 6a3 3 0 0 1 6 0v2H9V6z"/></svg>{% endif %}
+    </div>
+    <div class="titulo">{{ i.modulo }}</div>
+    {% if i.obtenida %}
+      <div class="suave">{% if i.fecha %}Aprobado el {{ i.fecha|date:"d/m/Y" }}{% else %}Aprobado{% endif %}</div>
+    {% else %}
+      <div class="suave">En progreso · {{ i.progreso }}%</div>
+    {% endif %}
+  </div>
+  {% empty %}
+  <p class="suave">Aún no estás matriculado en ningún módulo.</p>
+  {% endfor %}
+</div>
+{% endblock %}

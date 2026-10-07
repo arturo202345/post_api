@@ -9,6 +9,7 @@ Se activa solo con variables de entorno (no hay que tocar settings.py):
 """
 import json
 import os
+import urllib.error
 import urllib.request
 from email.utils import parseaddr
 
@@ -43,6 +44,10 @@ class BrevoEmailBackend(BaseEmailBackend):
             try:
                 urllib.request.urlopen(req, timeout=15).close()
                 enviados += 1
+            except urllib.error.HTTPError as e:
+                if not self.fail_silently:  # incluye lo que responde Brevo para poder diagnosticar
+                    detalle = e.read().decode(errors="replace")
+                    raise RuntimeError(f"Brevo respondió {e.code}: {detalle}") from e
             except Exception:
                 if not self.fail_silently:
                     raise
